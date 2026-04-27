@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Book Slot {{ slot.slot_number }} - SmartPark{% endblock %}
+
+{% block content %}
+<div class="container page-wrapper" style="max-width:600px;">
+  <div class="page-header">
+    <h1><i class="fa-solid fa-bookmark"></i> Book Slot</h1>
+    <p>Confirm your parking reservation</p>
+  </div>
+
+  <!-- Slot Info Card -->
+  <div class="glass-card mb-3">
+    <div class="section-title"><i class="fa-solid fa-info-circle" style="color:var(--accent)"></i> Slot Information</div>
+    <div class="modal-detail"><span>Slot Number</span><strong>{{ slot.slot_number }}</strong></div>
+    <div class="modal-detail"><span>Floor</span><strong>{{ 'Ground (G)' if slot.floor == 'G' else 'Floor ' + slot.floor }}</strong></div>
+    <div class="modal-detail"><span>Section</span><strong>Section {{ slot.section }}</strong></div>
+    <div class="modal-detail">
+      <span>Type</span>
+      <span class="badge {% if slot.slot_type == 'premium' %}badge-info{% elif slot.slot_type == 'handicapped' %}badge-warning{% else %}badge-secondary{% endif %}">
+        {{ slot.slot_type|capitalize }}
+      </span>
+    </div>
+    <div class="modal-detail">
+      <span>Status</span>
+      <span class="badge badge-success"><i class="fa-solid fa-circle" style="font-size:.5rem;"></i> Available</span>
+    </div>
+  </div>
+
+  <!-- Booking Form -->
+  <div class="glass-card">
+    <div class="section-title"><i class="fa-solid fa-calendar-plus" style="color:var(--accent)"></i> Booking Details</div>
+    <form method="POST" action="{{ url_for('book_slot', slot_id=slot.id) }}">
+      <div class="form-group">
+        <label class="form-label"><i class="fa-solid fa-clock"></i> Expected Entry Time (Optional)</label>
+        <input type="datetime-local" name="expected_entry" id="expected_entry" class="form-control"/>
+        <small style="color:var(--text-muted);font-size:.78rem;">Leave blank for immediate booking</small>
+      </div>
+
+      <!-- User vehicle info reminder -->
+      <div style="background:rgba(108,99,255,0.1);border:1px solid rgba(108,99,255,0.3);border-radius:10px;padding:.85rem;margin-bottom:1rem;font-size:.85rem;">
+        <i class="fa-solid fa-car" style="color:var(--primary)"></i>
+        Booking will be registered for your account: <strong>{{ session.user_name }}</strong>
+      </div>
+
+      <div style="display:flex;gap:.75rem;flex-wrap:wrap;">
+        <button type="submit" class="btn btn-primary" style="flex:1">
+          <i class="fa-solid fa-check"></i> Confirm Booking
+        </button>
+        <a href="{{ url_for('parking') }}" class="btn btn-secondary" style="flex:1">
+          <i class="fa-solid fa-arrow-left"></i> Back
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}Smart Parking System{% endblock %}</title>
+  <meta name="description" content="Smart Parking System - Book and manage parking slots easily."/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+<!-- ── Navbar ───────────────────────────────── -->
+{% if request.endpoint not in ['login','register','index','admin_login'] %}
+<nav class="navbar">
+  <!-- Logo: goes to dashboard if logged in, home if not -->
+  <a href="{% if session.get('is_admin') %}{{ url_for('admin_dashboard') }}{% elif session.get('user_id') %}{{ url_for('dashboard') }}{% else %}{{ url_for('index') }}{% endif %}" class="navbar-brand">
+    <i class="fa-solid fa-square-parking"></i> SmartPark
+  </a>
+
+  <div class="nav-links">
+    {% if session.get('is_admin') %}
+      <a href="{{ url_for('admin_dashboard') }}" class="nav-link"><i class="fa-solid fa-gauge"></i> Dashboard</a>
+      <a href="{{ url_for('admin_slots') }}" class="nav-link"><i class="fa-solid fa-map"></i> Slots</a>
+      <a href="{{ url_for('admin_users') }}" class="nav-link"><i class="fa-solid fa-users"></i> Users</a>
+      <a href="{{ url_for('admin_records') }}" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i> Logs</a>
+      <a href="{{ url_for('admin_logout') }}" class="btn btn-secondary btn-sm"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+    {% elif session.get('user_id') %}
+      <a href="{{ url_for('dashboard') }}" class="nav-link"><i class="fa-solid fa-gauge"></i> Dashboard</a>
+      <a href="{{ url_for('parking') }}" class="nav-link"><i class="fa-solid fa-square-parking"></i> Park</a>
+      <a href="{{ url_for('my_bookings') }}" class="nav-link"><i class="fa-solid fa-bookmark"></i> Bookings</a>
+      <a href="{{ url_for('profile') }}" class="nav-link"><i class="fa-solid fa-user"></i> Profile</a>
+      <a href="{{ url_for('logout') }}" class="btn btn-secondary btn-sm"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+    {% else %}
+      <a href="{{ url_for('login') }}" class="nav-link">Login</a>
+      <a href="{{ url_for('register') }}" class="btn btn-primary btn-sm">Register</a>
+    {% endif %}
+  </div>
+</nav>
+{% endif %}
+
+<!-- ── Flash Messages ────────────────────────── -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="container flash-messages">
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">
+          <i class="fa-solid {% if category=='success' %}fa-circle-check{% elif category=='danger' %}fa-circle-xmark{% elif category=='warning' %}fa-triangle-exclamation{% else %}fa-circle-info{% endif %}"></i>
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<!-- ── Page Content ──────────────────────────── -->
+{% block content %}{% endblock %}
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

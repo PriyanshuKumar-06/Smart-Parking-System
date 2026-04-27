@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Entry/Exit Logs - Admin{% endblock %}
+
+{% block content %}
+<div class="container page-wrapper">
+  <div class="page-header">
+    <h1><i class="fa-solid fa-clock-rotate-left"></i> Entry / Exit Logs</h1>
+    <p>Full parking activity history</p>
+  </div>
+
+  <div class="glass-card">
+    <div class="section-title"><i class="fa-solid fa-list" style="color:var(--accent)"></i> Records ({{ records|length }})</div>
+    {% if records %}
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr><th>#</th><th>User</th><th>Vehicle</th><th>Slot</th><th>Entry Time</th><th>Exit Time</th><th>Duration</th></tr>
+        </thead>
+        <tbody>
+          {% for r in records %}
+          <tr>
+            <td style="color:var(--text-muted);">{{ loop.index }}</td>
+            <td><strong>{{ r.user_name }}</strong></td>
+            <td><span class="badge badge-info"><i class="fa-solid fa-car"></i> {{ r.vehicle_number }}</span></td>
+            <td><strong>{{ r.slot_number }}</strong></td>
+            <td style="font-size:.8rem;">{{ r.entry_time }}</td>
+            <td style="font-size:.8rem;">
+              {% if r.exit_time %}{{ r.exit_time }}{% else %}<span class="badge badge-warning">Still parked</span>{% endif %}
+            </td>
+            <td>
+              {% if r.exit_time %}
+                <!-- Parking session ended; duration may be 0 for sub-minute stays -->
+                <span class="badge badge-success">
+                  <i class="fa-solid fa-clock"></i>
+                  {{ r.duration_minutes if r.duration_minutes else '<1' }} min
+                </span>
+              {% else %}
+                <span class="badge badge-warning">Ongoing</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="empty-state">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+        <p>No parking records yet. Records appear when users check in.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

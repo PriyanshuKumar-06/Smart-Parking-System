@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - SmartPark{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container page-wrapper">
+  <div class="page-header">
+    <h1><i class="fa-solid fa-gauge"></i> My Dashboard</h1>
+    <p>Welcome back, <strong>{{ session.user_name }}</strong> 👋</p>
+  </div>
+
+  <!-- Stats Row -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon blue"><i class="fa-solid fa-square-parking"></i></div>
+      <div class="stat-info"><h3>{{ total_slots }}</h3><p>Total Slots</p></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green"><i class="fa-solid fa-circle-check"></i></div>
+      <div class="stat-info"><h3>{{ available_slots }}</h3><p>Available</p></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon red"><i class="fa-solid fa-car"></i></div>
+      <div class="stat-info"><h3>{{ occupied_slots }}</h3><p>Occupied</p></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon yellow"><i class="fa-solid fa-bookmark"></i></div>
+      <div class="stat-info"><h3>{{ booked_slots }}</h3><p>Booked</p></div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <!-- Donut Chart -->
+    <div class="glass-card">
+      <div class="section-title"><i class="fa-solid fa-chart-pie" style="color:var(--accent)"></i> Slot Overview</div>
+      <div class="chart-container">
+        <canvas id="slotChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="glass-card">
+      <div class="section-title"><i class="fa-solid fa-bolt" style="color:var(--accent)"></i> Quick Actions</div>
+      <div style="display:flex;flex-direction:column;gap:.75rem;margin-top:.5rem;">
+        <a href="{{ url_for('parking') }}" class="btn btn-primary">
+          <i class="fa-solid fa-magnifying-glass"></i> Find & Book a Slot
+        </a>
+        <a href="{{ url_for('my_bookings') }}" class="btn btn-secondary">
+          <i class="fa-solid fa-list"></i> View My Bookings
+        </a>
+        <a href="{{ url_for('profile') }}" class="btn btn-secondary">
+          <i class="fa-solid fa-user-pen"></i> Edit Profile
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Active Bookings -->
+  <div class="glass-card mt-3">
+    <div class="section-title"><i class="fa-solid fa-bookmark" style="color:var(--accent)"></i> Active Bookings</div>
+    {% if active_bookings %}
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Slot</th><th>Floor / Section</th><th>Type</th><th>Booked At</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for b in active_bookings %}
+            <tr>
+              <td><strong>{{ b.slot_number }}</strong></td>
+              <td>Floor {{ b.floor }} – {{ b.section }}</td>
+              <td>
+                <span class="badge badge-info">{{ b.slot_type|capitalize }}</span>
+              </td>
+              <td style="font-size:.8rem;color:var(--text-muted);">{{ b.booking_time }}</td>
+              <td style="display:flex;gap:.4rem;flex-wrap:wrap;">
+                {% if b.slot_status == 'booked' %}
+                <a href="{{ url_for('check_in', booking_id=b.id) }}" class="btn btn-success btn-sm">
+                  <i class="fa-solid fa-arrow-right-to-bracket"></i> Check-in
+                </a>
+                {% elif b.slot_status == 'occupied' %}
+                <a href="{{ url_for('check_out', booking_id=b.id) }}" class="btn btn-warning btn-sm">
+                  <i class="fa-solid fa-arrow-right-from-bracket"></i> Check-out
+                </a>
+                {% endif %}
+                <!-- POST form cancel — avoids confirm() dialog confusion -->
+                <form method="POST" action="{{ url_for('cancel_booking', booking_id=b.id) }}" style="display:inline;" onsubmit="return confirm('Are you sure you want to cancel this booking? This action cannot be undone.');">
+                  <button type="submit" class="btn btn-danger btn-sm">
+                    <i class="fa-solid fa-xmark"></i> Cancel
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <i class="fa-solid fa-square-parking"></i>
+        <p>No active bookings. <a href="{{ url_for('parking') }}">Book a slot now!</a></p>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Recent History -->
+  {% if recent_records %}
+  <div class="glass-card mt-3">
+    <div class="section-title"><i class="fa-solid fa-clock-rotate-left" style="color:var(--accent)"></i> Recent Parking History</div>
+    <div class="table-wrapper">
+      <table>
+        <thead><tr><th>Slot</th><th>Entry</th><th>Exit</th><th>Duration</th></tr></thead>
+        <tbody>
+          {% for r in recent_records %}
+          <tr>
+            <td><strong>{{ r.slot_number }}</strong></td>
+            <td style="font-size:.8rem;">{{ r.entry_time }}</td>
+            <td style="font-size:.8rem;">{{ r.exit_time or '—' }}</td>
+            <td>
+              {% if r.exit_time %}
+                <!-- exit_time is set → session is done; show duration (or '<1 min' if 0) -->
+                <span class="badge badge-success">
+                  <i class="fa-solid fa-clock"></i>
+                  {{ r.duration_minutes if r.duration_minutes else '<1' }} min
+                </span>
+              {% else %}
+                <span class="badge badge-warning">Ongoing</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Donut chart using Chart.js
+const ctx = document.getElementById('slotChart').getContext('2d');
+new Chart(ctx, {
+  type: 'doughnut',
+  data: {
+    labels: ['Available', 'Occupied', 'Booked'],
+    datasets: [{
+      data: [{{ available_slots }}, {{ occupied_slots }}, {{ booked_slots }}],
+      backgroundColor: ['rgba(34,197,94,0.8)','rgba(239,68,68,0.8)','rgba(245,158,11,0.8)'],
+      borderColor: ['#22c55e','#ef4444','#f59e0b'],
+      borderWidth: 2, hoverOffset: 8
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position:'bottom', labels:{ color:'rgba(255,255,255,0.7)', padding:16, font:{size:12} } }
+    },
+    cutout: '65%'
+  }
+});
+</script>
+{% endblock %}

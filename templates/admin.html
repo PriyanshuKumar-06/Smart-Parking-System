@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard - SmartPark{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container page-wrapper">
+  <div class="page-header">
+    <h1><i class="fa-solid fa-gauge"></i> Admin Dashboard</h1>
+    <p>System overview and statistics</p>
+  </div>
+
+  <!-- Stat Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon blue"><i class="fa-solid fa-square-parking"></i></div>
+      <div class="stat-info"><h3>{{ total_slots }}</h3><p>Total Slots</p></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green"><i class="fa-solid fa-circle-check"></i></div>
+      <div class="stat-info"><h3>{{ available_slots }}</h3><p>Available</p></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon red"><i class="fa-solid fa-car"></i></div>
+      <div class="stat-info"><h3>{{ occupied_slots }}</h3><p>Occupied</p></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon yellow"><i class="fa-solid fa-bookmark"></i></div>
+      <div class="stat-info"><h3>{{ booked_slots }}</h3><p>Booked</p></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon purple"><i class="fa-solid fa-users"></i></div>
+      <div class="stat-info"><h3>{{ total_users }}</h3><p>Registered Users</p></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon blue"><i class="fa-solid fa-list-check"></i></div>
+      <div class="stat-info"><h3>{{ total_bookings }}</h3><p>Total Bookings</p></div>
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div class="grid-2 mb-3">
+    <div class="glass-card">
+      <div class="section-title"><i class="fa-solid fa-chart-pie" style="color:var(--accent)"></i> Slot Status</div>
+      <div class="chart-container">
+        <canvas id="slotChart"></canvas>
+      </div>
+    </div>
+    <div class="glass-card">
+      <div class="section-title"><i class="fa-solid fa-chart-bar" style="color:var(--accent)"></i> Slot Types</div>
+      <div class="chart-container">
+        <canvas id="typeChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Quick Links -->
+  <div class="glass-card mb-3">
+    <div class="section-title"><i class="fa-solid fa-bolt" style="color:var(--accent)"></i> Management</div>
+    <div style="display:flex;gap:.75rem;flex-wrap:wrap;">
+      <a href="{{ url_for('admin_slots') }}" class="btn btn-primary">
+        <i class="fa-solid fa-map"></i> Manage Slots
+      </a>
+      <a href="{{ url_for('admin_users') }}" class="btn btn-secondary">
+        <i class="fa-solid fa-users"></i> View Users
+      </a>
+      <a href="{{ url_for('admin_records') }}" class="btn btn-secondary">
+        <i class="fa-solid fa-clock-rotate-left"></i> Entry/Exit Logs
+      </a>
+    </div>
+  </div>
+
+  <!-- Recent Bookings -->
+  <div class="glass-card">
+    <div class="section-title"><i class="fa-solid fa-bookmark" style="color:var(--accent)"></i> Recent Bookings</div>
+    {% if recent_bookings %}
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr><th>User</th><th>Vehicle</th><th>Slot</th><th>Booked At</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          {% for b in recent_bookings %}
+          <tr>
+            <td><strong>{{ b.user_name }}</strong></td>
+            <td>{{ b.vehicle_number }}</td>
+            <td><span class="badge badge-info">{{ b.slot_number }}</span></td>
+            <td style="font-size:.8rem;color:var(--text-muted);">{{ b.booking_time }}</td>
+            <td>
+              {% if b.status == 'active' %}
+                <span class="badge badge-success">Active</span>
+              {% elif b.status == 'completed' %}
+                <span class="badge badge-secondary">Completed</span>
+              {% else %}
+                <span class="badge badge-danger">Cancelled</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="empty-state"><i class="fa-solid fa-bookmark"></i><p>No bookings yet.</p></div>
+    {% endif %}
+  </div>
+
+  <!-- Floor Blueprints Layout (Admin View) -->
+  <div class="glass-card mt-3">
+    <div class="section-title"><i class="fa-solid fa-square-parking" style="color:var(--accent)"></i> Live Parking Layout</div>
+    <!-- Legend -->
+    <div class="parking-legend mb-3">
+      <div class="legend-item"><div class="legend-box legend-available"></div><span>Available</span></div>
+      <div class="legend-item"><div class="legend-box legend-booked"></div><span>Booked</span></div>
+      <div class="legend-item"><div class="legend-box legend-occupied"></div><span>Occupied</span></div>
+      <div class="legend-sep"></div>
+      <div class="legend-item"><span class="bp-badge bp-premium">★ Premium</span></div>
+      <div class="legend-item"><span class="bp-badge bp-regular">Regular</span></div>
+      <div class="legend-item"><span class="bp-badge bp-accessible">♿ Accessible</span></div>
+    </div>
+
+    <!-- Floor Blueprints -->
+    {% for floor, slots in floors.items() %}
+    <div class="floor-blueprint-wrap mb-3">
+      <!-- Floor Label -->
+      <div class="floor-blueprint-header">
+        <i class="fa-solid fa-building"></i>
+        <span>Floor&nbsp;{{ 'Ground (G)' if floor == 'G' else floor }}</span>
+        <span class="floor-slot-count">{{ slots|length }} slots</span>
+      </div>
+
+      <!-- Scrollable Blueprint Canvas -->
+      <div class="blueprint-scroll">
+        <div class="blueprint-canvas">
+
+          <!-- ══ LEFT: Utility block ══ -->
+          <div class="bp-side bp-side-left">
+            <div class="bp-utility-room"><i class="fa-solid fa-gear"></i><span>Utility</span></div>
+            <div class="bp-wall-hatch"></div>
+          </div>
+
+          <!-- ══ CENTER: parking rows + lane ══ -->
+          <div class="bp-center">
+            <!-- TOP ROW -->
+            <div class="bp-row bp-row-top">
+              {% for slot in slots[:slots|length//2] %}
+              <div class="bp-slot {{ slot.status }} {{ slot.slot_type }}"
+                   id="slot-{{ slot.id }}"
+                   data-id="{{ slot.id }}"
+                   data-status="{{ slot.status }}"
+                   onclick="handleSlotClick({{ slot.id }}, '{{ slot.status }}')">
+                <div class="bp-car-icon">
+                  {% if slot.status == 'occupied' %}<i class="fa-solid fa-car"></i>
+                  {% elif slot.status == 'booked' %}<i class="fa-solid fa-clock"></i>
+                  {% else %}<i class="fa-solid fa-plus"></i>{% endif %}
+                </div>
+                <div class="bp-slot-num">{{ slot.slot_number }}</div>
+                {% if slot.slot_type == 'premium' %}<div class="bp-slot-tag">★</div>{% endif %}
+                {% if slot.slot_type == 'handicapped' %}<div class="bp-slot-tag">♿</div>{% endif %}
+              </div>
+              {% endfor %}
+            </div>
+
+            <!-- DRIVING LANE -->
+            <div class="bp-lane">
+              <div class="bp-lane-inner">
+                <div class="bp-lane-text">DRIVING LANE</div>
+                <div class="bp-lane-arrows">
+                  <i class="fa-solid fa-chevron-right lane-arrow"></i>
+                  <i class="fa-solid fa-chevron-right lane-arrow"></i>
+                  <i class="fa-solid fa-chevron-right lane-arrow"></i>
+                  <i class="fa-solid fa-chevron-right lane-arrow"></i>
+                  <i class="fa-solid fa-chevron-right lane-arrow"></i>
+                  <i class="fa-solid fa-chevron-right lane-arrow"></i>
+                </div>
+                <div class="bp-lane-dashes">
+                  <div class="lane-dash"></div><div class="lane-dash"></div>
+                  <div class="lane-dash"></div><div class="lane-dash"></div>
+                  <div class="lane-dash"></div><div class="lane-dash"></div>
+                  <div class="lane-dash"></div><div class="lane-dash"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- BOTTOM ROW -->
+            <div class="bp-row bp-row-bottom">
+              {% for slot in slots[slots|length//2:] %}
+              <div class="bp-slot {{ slot.status }} {{ slot.slot_type }}"
+                   id="slot-{{ slot.id }}"
+                   data-id="{{ slot.id }}"
+                   data-status="{{ slot.status }}"
+                   onclick="handleSlotClick({{ slot.id }}, '{{ slot.status }}')">
+                <div class="bp-slot-num">{{ slot.slot_number }}</div>
+                {% if slot.slot_type == 'premium' %}<div class="bp-slot-tag">★</div>{% endif %}
+                {% if slot.slot_type == 'handicapped' %}<div class="bp-slot-tag">♿</div>{% endif %}
+                <div class="bp-car-icon">
+                  {% if slot.status == 'occupied' %}<i class="fa-solid fa-car"></i>
+                  {% elif slot.status == 'booked' %}<i class="fa-solid fa-clock"></i>
+                  {% else %}<i class="fa-solid fa-plus"></i>{% endif %}
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div><!-- /.bp-center -->
+
+          <!-- ══ RIGHT: Staircase + Entry/Exit ══ -->
+          <div class="bp-side bp-side-right">
+            <div class="bp-staircase">
+              <div class="stair-steps">
+                <div class="stair-step"></div><div class="stair-step"></div>
+                <div class="stair-step"></div><div class="stair-step"></div>
+              </div>
+              <i class="fa-solid fa-person-walking-arrow-right stair-icon"></i>
+              <span>Staircase</span>
+            </div>
+            <div class="bp-entry-exit"><i class="fa-solid fa-arrow-right-to-bracket"></i><span>Entry / Exit</span></div>
+          </div>
+        </div><!-- /.blueprint-canvas -->
+      </div><!-- /.blueprint-scroll -->
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Slot Detail Modal for Admin -->
+<div class="modal-overlay" id="slotModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="modalTitle"><i class="fa-solid fa-square-parking"></i> Slot Details</h3>
+      <button class="modal-close" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div id="modalBody">
+      <div class="modal-detail"><span>Slot Number</span><span id="mSlotNum">—</span></div>
+      <div class="modal-detail"><span>Floor</span><span id="mFloor">—</span></div>
+      <div class="modal-detail"><span>Section</span><span id="mSection">—</span></div>
+      <div class="modal-detail"><span>Type</span><span id="mType">—</span></div>
+      <div class="modal-detail"><span>Status</span><span id="mStatus">—</span></div>
+    </div>
+    <div style="margin-top:1.25rem;" id="modalActions"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Slot Status Doughnut Chart
+new Chart(document.getElementById('slotChart').getContext('2d'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Available','Occupied','Booked'],
+    datasets: [{
+      data: [{{ available_slots }}, {{ occupied_slots }}, {{ booked_slots }}],
+      backgroundColor: ['rgba(34,197,94,.8)','rgba(239,68,68,.8)','rgba(245,158,11,.8)'],
+      borderColor: ['#22c55e','#ef4444','#f59e0b'],
+      borderWidth: 2, hoverOffset: 8
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false, cutout: '65%',
+    plugins: { legend: { position:'bottom', labels:{ color:'rgba(255,255,255,.7)', padding:14, font:{size:11} } } }
+  }
+});
+
+// Slot Types Bar Chart
+const typeLabels = [{% for t in slot_types %}'{{ t.slot_type|capitalize }}'{% if not loop.last %},{% endif %}{% endfor %}];
+const typeData   = [{% for t in slot_types %}{{ t.count }}{% if not loop.last %},{% endif %}{% endfor %}];
+new Chart(document.getElementById('typeChart').getContext('2d'), {
+  type: 'bar',
+  data: {
+    labels: typeLabels,
+    datasets: [{
+      label: 'Count',
+      data: typeData,
+      backgroundColor: ['rgba(108,99,255,.7)','rgba(168,85,247,.7)','rgba(59,130,246,.7)'],
+      borderColor: ['#6c63ff','#a855f7','#3b82f6'],
+      borderWidth: 2, borderRadius: 8
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks:{ color:'rgba(255,255,255,.6)' }, grid:{ color:'rgba(255,255,255,.05)' } },
+      y: { ticks:{ color:'rgba(255,255,255,.6)' }, grid:{ color:'rgba(255,255,255,.05)' }, beginAtZero:true }
+    }
+  }
+});
+
+// Admin Parking Layout Modal Logic
+function handleSlotClick(slotId, status) {
+  fetch(`/api/slot/${slotId}`)
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('mSlotNum').textContent = data.slot_number;
+      document.getElementById('mFloor').textContent = 'Floor ' + (data.floor === 'G' ? 'Ground' : data.floor);
+      document.getElementById('mSection').textContent = 'Section ' + data.section;
+      document.getElementById('mType').textContent = data.slot_type.charAt(0).toUpperCase() + data.slot_type.slice(1);
+
+      const statusColors = { available:'#86efac', booked:'#fcd34d', occupied:'#fca5a5' };
+      document.getElementById('mStatus').innerHTML =
+        `<span style="color:${statusColors[data.status]};font-weight:700;">${data.status.toUpperCase()}</span>`;
+
+      const actions = document.getElementById('modalActions');
+      if (data.status === 'occupied' || data.status === 'booked') {
+        actions.innerHTML = `
+          <form method="POST" action="/admin/force-checkout/${data.id}">
+            <button type="submit" class="btn btn-warning w-100" onclick="return confirm('Are you sure you want to force checkout this slot?');">
+              <i class="fa-solid fa-arrow-right-from-bracket"></i> Force Checkout
+            </button>
+          </form>
+        `;
+      } else {
+        actions.innerHTML = `<button class="btn btn-secondary w-100" onclick="closeModal()">
+          <i class="fa-solid fa-xmark"></i> Close
+        </button>`;
+      }
+
+      document.getElementById('slotModal').classList.add('active');
+    });
+}
+
+function closeModal() {
+  document.getElementById('slotModal').classList.remove('active');
+}
+
+document.getElementById('slotModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+</script>
+{% endblock %}

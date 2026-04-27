@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Manage Slots - Admin{% endblock %}
+
+{% block content %}
+<div class="container page-wrapper">
+  <div class="page-header">
+    <h1><i class="fa-solid fa-map"></i> Manage Parking Slots</h1>
+    <p>Add, view, or remove parking slots</p>
+  </div>
+
+  <!-- Add Slot Form -->
+  <div class="glass-card mb-3">
+    <div class="section-title"><i class="fa-solid fa-plus" style="color:var(--accent)"></i> Add New Slot</div>
+    <form method="POST" action="{{ url_for('add_slot') }}">
+      <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end;">
+        <div class="form-group" style="flex:1;min-width:140px;margin:0;">
+          <label class="form-label">Slot Number</label>
+          <input type="text" name="slot_number" class="form-control" placeholder="e.g. G A06" required/>
+        </div>
+        <div class="form-group" style="flex:1;min-width:140px;margin:0;">
+          <label class="form-label">Type</label>
+          <select name="slot_type" class="form-control">
+            <option value="regular">Regular</option>
+            <option value="premium">Premium</option>
+            <option value="handicapped">Handicapped</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:1;min-width:120px;margin:0;">
+          <label class="form-label">Floor</label>
+          <select name="floor" class="form-control">
+            <option value="G">Ground (G)</option>
+            <option value="1">Floor 1</option>
+            <option value="2">Floor 2</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:1;min-width:120px;margin:0;">
+          <label class="form-label">Section</label>
+          <select name="section" class="form-control">
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+          </select>
+        </div>
+        <div style="margin-bottom:0;">
+          <button type="submit" class="btn btn-primary">
+            <i class="fa-solid fa-plus"></i> Add Slot
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Slots Table -->
+  <div class="glass-card">
+    <div class="section-title d-flex justify-between">
+      <span><i class="fa-solid fa-table" style="color:var(--accent)"></i> All Slots ({{ slots|length }})</span>
+    </div>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr><th>#</th><th>Slot No.</th><th>Floor</th><th>Section</th><th>Type</th><th>Status</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          {% for s in slots %}
+          <tr>
+            <td style="color:var(--text-muted);">{{ loop.index }}</td>
+            <td><strong>{{ s.slot_number }}</strong></td>
+            <td>{{ 'Ground' if s.floor == 'G' else s.floor }}</td>
+            <td>{{ s.section }}</td>
+            <td>
+              <span class="badge {% if s.slot_type == 'premium' %}badge-info{% elif s.slot_type == 'handicapped' %}badge-warning{% else %}badge-secondary{% endif %}">
+                {{ s.slot_type|capitalize }}
+              </span>
+            </td>
+            <td>
+              {% if s.status == 'available' %}
+                <span class="badge badge-success">Available</span>
+              {% elif s.status == 'occupied' %}
+                <span class="badge badge-danger">Occupied</span>
+              {% else %}
+                <span class="badge badge-warning">Booked</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if s.status == 'available' %}
+              <a href="{{ url_for('delete_slot', slot_id=s.id) }}" class="btn btn-danger btn-sm"
+                 onclick="return confirm('Delete slot {{ s.slot_number }}?')">
+                <i class="fa-solid fa-trash"></i> Delete
+              </a>
+              {% else %}
+              <span style="color:var(--text-muted);font-size:.8rem;">In use</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

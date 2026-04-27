@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}My Bookings - SmartPark{% endblock %}
+
+{% block content %}
+<div class="container page-wrapper">
+  <div class="page-header">
+    <h1><i class="fa-solid fa-bookmark"></i> My Bookings</h1>
+    <p>Manage all your parking reservations</p>
+  </div>
+
+  <div class="glass-card">
+    {% if bookings %}
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Slot</th><th>Floor/Section</th><th>Type</th>
+            <th>Booked At</th><th>Booking Status</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for b in bookings %}
+          <tr>
+            <td style="color:var(--text-muted);">{{ loop.index }}</td>
+            <td><strong>{{ b.slot_number }}</strong></td>
+            <td>Floor {{ b.floor }} / {{ b.section }}</td>
+            <td><span class="badge badge-info">{{ b.slot_type|capitalize }}</span></td>
+            <td style="font-size:.8rem;color:var(--text-muted);">{{ b.booking_time }}</td>
+            <td>
+              {% if b.status == 'active' %}
+                <span class="badge badge-success"><i class="fa-solid fa-circle" style="font-size:.4rem;"></i> Active</span>
+              {% elif b.status == 'completed' %}
+                <span class="badge badge-secondary"><i class="fa-solid fa-check"></i> Completed</span>
+              {% else %}
+                <span class="badge badge-danger"><i class="fa-solid fa-xmark"></i> Cancelled</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if b.status == 'active' %}
+                <div style="display:flex;gap:.35rem;flex-wrap:wrap;">
+                  {% if b.slot_status == 'booked' %}
+                  <a href="{{ url_for('check_in', booking_id=b.id) }}" class="btn btn-success btn-sm">
+                    <i class="fa-solid fa-arrow-right-to-bracket"></i> Check-in
+                  </a>
+                  {% elif b.slot_status == 'occupied' %}
+                  <a href="{{ url_for('check_out', booking_id=b.id) }}" class="btn btn-warning btn-sm">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Check-out
+                  </a>
+                  {% endif %}
+                  <!-- Cancel uses POST form — avoids confusing browser confirm() dialog -->
+                  <form method="POST" action="{{ url_for('cancel_booking', booking_id=b.id) }}"
+                        style="display:inline;"
+                        onsubmit="return showCancelModal(event, this)">
+                    <button type="submit" class="btn btn-danger btn-sm">
+                      <i class="fa-solid fa-xmark"></i> Cancel
+                    </button>
+                  </form>
+                </div>
+              {% else %}
+                <span style="color:var(--text-muted);font-size:.8rem;">No actions</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="empty-state">
+        <i class="fa-solid fa-bookmark"></i>
+        <p>You have no bookings yet.</p>
+        <a href="{{ url_for('parking') }}" class="btn btn-primary mt-2">
+          <i class="fa-solid fa-magnifying-glass"></i> Find a Slot
+        </a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Cancel Confirmation Modal -->
+<div class="modal-overlay" id="cancelModal">
+  <div class="modal-box" style="max-width:380px;">
+    <div class="modal-header">
+      <h3><i class="fa-solid fa-triangle-exclamation" style="color:#fcd34d;"></i> Cancel Booking?</h3>
+      <button class="modal-close" onclick="closeCancelModal()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <p style="color:var(--text-muted);font-size:.9rem;margin-bottom:1.5rem;">
+      This will free the slot and remove your reservation. This action cannot be undone.
+    </p>
+    <div style="display:flex;gap:.75rem;">
+      <button id="confirmCancelBtn" class="btn btn-danger" style="flex:1;">
+        <i class="fa-solid fa-trash"></i> Yes, Cancel Booking
+      </button>
+      <button onclick="closeCancelModal()" class="btn btn-secondary" style="flex:1;">
+        <i class="fa-solid fa-arrow-left"></i> Go Back
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let pendingForm = null;
+
+// Show our custom modal instead of submitting immediately
+function showCancelModal(event, form) {
+  event.preventDefault();   // stop instant submit
+  pendingForm = form;
+  document.getElementById('cancelModal').classList.add('active');
+  return false;
+}
+
+// User confirmed — now actually submit the form
+document.getElementById('confirmCancelBtn').addEventListener('click', function () {
+  if (pendingForm) {
+    pendingForm.submit();
+  }
+});
+
+function closeCancelModal() {
+  document.getElementById('cancelModal').classList.remove('active');
+  pendingForm = null;
+}
+
+// Close modal if overlay clicked
+document.getElementById('cancelModal').addEventListener('click', function(e) {
+  if (e.target === this) closeCancelModal();
+});
+</script>
+{% endblock %}

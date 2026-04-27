@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}SmartPark - Intelligent Parking Management{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero">
+  <div>
+    <p style="color:var(--accent);font-weight:600;font-size:0.9rem;letter-spacing:.1em;margin-bottom:.75rem;">
+      <i class="fa-solid fa-bolt"></i> NEXT-GEN PARKING SOLUTION
+    </p>
+    <h1 class="hero-title">Smart Parking,<br/>Simplified.</h1>
+    <p class="hero-sub">Book, manage, and track your parking slot in real time — all from one place.</p>
+    <div class="hero-btns">
+      <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg">
+        <i class="fa-solid fa-user-plus"></i> Get Started Free
+      </a>
+      <a href="{{ url_for('login') }}" class="btn btn-secondary btn-lg">
+        <i class="fa-solid fa-right-to-bracket"></i> Login
+      </a>
+    </div>
+
+    <!-- Feature cards -->
+    <div class="hero-features">
+      <div class="hero-feature">
+        <i class="fa-solid fa-map-pin"></i>
+        <h4>Real-time View</h4>
+        <p>See available slots live on an interactive grid</p>
+      </div>
+      <div class="hero-feature">
+        <i class="fa-solid fa-calendar-check"></i>
+        <h4>Instant Booking</h4>
+        <p>Reserve your spot in seconds, no hassle</p>
+      </div>
+      <div class="hero-feature">
+        <i class="fa-solid fa-clock"></i>
+        <h4>Entry / Exit</h4>
+        <p>Check-in & check-out with duration tracking</p>
+      </div>
+      <div class="hero-feature">
+        <i class="fa-solid fa-chart-bar"></i>
+        <h4>Admin Reports</h4>
+        <p>Full dashboard with stats and logs</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Admin link footer-bar -->
+<div style="text-align:center;padding:1.5rem;border-top:1px solid rgba(255,255,255,0.06);">
+  <a href="{{ url_for('admin_login') }}" style="color:var(--text-muted);font-size:.85rem;">
+    <i class="fa-solid fa-shield-halved"></i> Admin Panel
+  </a>
+</div>
+{% endblock %}
